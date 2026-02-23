@@ -44,8 +44,16 @@ let seconds = 60;
 function buildWordManager() {
     const container = document.getElementById('word-pack-container');
     if (!container) return;
+
+    // Restore saved settings to inputs
     document.getElementById('teamRedName').value = localStorage.getItem('teamRedName') || "Red Team";
     document.getElementById('teamBlueName').value = localStorage.getItem('teamBlueName') || "Blue Team";
+    document.getElementById('gridSize').value = localStorage.getItem('gridSize') || "5";
+    
+    // Crucial: Load the saved difficulty level into the dropdown
+    const savedDifficulty = localStorage.getItem('gameDifficulty') || "2";
+    const diffSelect = document.getElementById('difficulty-select');
+    if(diffSelect) diffSelect.value = savedDifficulty;
 
     for (let packKey in wordPacks) {
         const pack = wordPacks[packKey];
@@ -111,7 +119,11 @@ function randomAll() {
 }
 
 function saveSettings() {
-    localStorage.setItem('gridSize', document.getElementById('gridSize').value);
+    const gridSize = document.getElementById('gridSize').value;
+    const difficulty = document.getElementById('difficulty-select').value;
+    
+    localStorage.setItem('gridSize', gridSize);
+    localStorage.setItem('gameDifficulty', difficulty);
     localStorage.setItem('teamRedName', document.getElementById('teamRedName').value || "Red Team");
     localStorage.setItem('teamBlueName', document.getElementById('teamBlueName').value || "Blue Team");
     
@@ -120,7 +132,6 @@ function saveSettings() {
         activeWords.push({w: cb.getAttribute('data-word'), d: parseInt(cb.getAttribute('data-level'))});
     });
     localStorage.setItem('activeWords', JSON.stringify(activeWords));
-    alert("Settings Saved!");
 }
 
 // 3. GAME PAGE LOGIC
@@ -135,21 +146,24 @@ function loadGame() {
 
     const gridSize = parseInt(localStorage.getItem('gridSize')) || 5;
     const allSelectedWords = JSON.parse(localStorage.getItem('activeWords') || "[]"); 
-    const maxDiff = parseInt(document.getElementById('difficulty-select')?.value || 2);
+    const maxDiff = parseInt(localStorage.getItem('gameDifficulty') || 2);
 
-    // Filter words based on difficulty chosen on game page
+    // Filtering logic based on the difficulty saved in Setup
     let filteredWords = allSelectedWords
         .filter(obj => obj.d <= maxDiff)
         .map(obj => obj.w);
 
     if (filteredWords.length < (gridSize * gridSize)) {
-        board.innerHTML = `<h2 style='grid-column: 1/-1; text-align:center; color:white;'>Not enough words found for Level ${maxDiff}. <br><br> Go to SETUP and pick more Level 1 or 2 words!</h2>`;
+        board.innerHTML = `<div style='grid-column: 1/-1; text-align:center; padding: 20px;'>
+            <h2 style='color:white;'>Not enough words for Level ${maxDiff}.</h2>
+            <p style='color:white;'>Current pool: ${filteredWords.length} words. Need: ${gridSize * gridSize}.</p>
+            <button class='menu-btn' onclick="window.location.href='setup.html'">Back to Setup</button>
+        </div>`;
         return;
     }
 
     let gameWords = filteredWords.sort(() => 0.5 - Math.random()).slice(0, gridSize * gridSize);
     
-    // ROLES GENERATION
     let roles = ["assassin"];
     let redN = Math.floor((gridSize * gridSize) / 3) + 1;
     let blueN = Math.floor((gridSize * gridSize) / 3);
@@ -184,7 +198,7 @@ function loadGame() {
                 if (role === currentTurn) {
                     playSound('sound-correct');
                 } else {
-                    toggleTurn(); // Hit opponent's card
+                    toggleTurn();
                 }
                 updateGameScore();
             }
@@ -271,21 +285,11 @@ function showGameOver() {
 function generateSpymasterQR() {
     const qrContainer = document.getElementById("qrcode");
     if (!qrContainer || typeof QRCode === "undefined") return;
-
-    // Create compact layout string (R=Red, B=Blue, N=Neutral, X=Assassin)
     let layout = window.currentGameData.map(d => d.role[0].toUpperCase()).join('').replace('A', 'X');
-    
-    // Construct URL by swapping game.html for key.html in the current address
     const currentUrl = window.location.href.split('?')[0]; 
     const finalUrl = currentUrl.replace('game.html', 'key.html') + "?layout=" + layout;
-
     qrContainer.innerHTML = "";
-    new QRCode(qrContainer, { 
-        text: finalUrl, 
-        width: 140, 
-        height: 140,
-        correctLevel : QRCode.CorrectLevel.M 
-    });
+    new QRCode(qrContainer, { text: finalUrl, width: 140, height: 140 });
 }
 
 function toggleSpy(show) {

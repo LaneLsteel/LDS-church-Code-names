@@ -8,6 +8,7 @@
     --card-bg: #ecf0f1; 
     --btn-primary: #686de0;
     --gold: #f1c40f;
+    --dark-slate: #34495e;
 }
 
 body {
@@ -49,11 +50,35 @@ body {
     cursor: pointer;
     transition: 0.2s;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .btn:hover { 
     transform: scale(1.02); 
     filter: brightness(1.1);
+}
+
+/* NEW: Back Button Specific Style */
+.back-btn-top {
+    position: absolute; 
+    top: 20px; 
+    left: 20px; 
+    padding: 10px 20px; 
+    cursor: pointer; 
+    background: var(--dark-slate); 
+    color: white; 
+    border: 2px solid var(--gold); 
+    border-radius: 5px; 
+    font-weight: bold; 
+    z-index: 100; 
+    transition: 0.3s;
+    text-decoration: none;
+}
+
+.back-btn-top:hover {
+    background: var(--gold);
+    color: black;
+    box-shadow: 0 0 15px var(--gold);
 }
 
 /* 3. SCOREBOARD & TIMER */
@@ -154,12 +179,13 @@ body {
 .peek.neutral-key { border: 6px dashed var(--neutral); color: var(--neutral); background: white; }
 .peek.assassin-key { border: 6px solid #000; color: #000; background: white; }
 
-/* 6. SETUP PAGE STYLES (Restored) */
-.main-cat { background: #1abc9c; color: white; margin-top: 15px; font-size: 1.3rem; padding: 15px; border-radius: 8px; cursor: pointer; }
-.sub-container { padding-left: 20px; border-left: 2px solid #1abc9c; }
-.sub-header { background: #34495e; padding: 10px; margin: 5px 0; display: flex; justify-content: space-between; cursor: pointer; border-radius: 5px;}
-.word-grid { display: flex; flex-wrap: wrap; gap: 5px; background: #2c3e50; padding: 10px; border-radius: 0 0 5px 5px; }
-.word-option { font-size: 0.8rem; background: #444; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
+/* 6. SETUP PAGE STYLES */
+.setting-group h3 { color: var(--gold); margin-bottom: 10px; font-size: 1rem; text-transform: uppercase; }
+.main-cat { background: #1abc9c; color: white; margin-top: 15px; font-size: 1.3rem; padding: 15px; border-radius: 8px; cursor: pointer; border-bottom: 4px solid #16a085; }
+.sub-container { padding-left: 20px; border-left: 2px solid #1abc9c; margin-bottom: 10px; }
+.sub-header { background: var(--dark-slate); padding: 10px; margin: 5px 0; display: flex; justify-content: space-between; cursor: pointer; border-radius: 5px; border-left: 4px solid var(--gold); }
+.word-grid { display: flex; flex-wrap: wrap; gap: 5px; background: #2c3e50; padding: 10px; border-radius: 0 0 5px 5px; border: 1px solid #444; }
+.word-option { font-size: 0.8rem; background: #444; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 5px; border: 1px solid #555; }
 
 /* 7. OVERLAYS & ANIMATIONS */
 #winner-name { animation: winnerPulse 1s infinite alternate ease-in-out; }
