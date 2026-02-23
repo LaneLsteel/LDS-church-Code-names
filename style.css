@@ -218,3 +218,36 @@ body {
     50% { opacity: 1; }
     100% { transform: scale(1.5); opacity: 0; }
 }
+/* 8. DIFFICULTY & VALIDATION STYLES */
+
+/* Gray out words that are higher than the selected difficulty */
+.word-option.difficulty-hidden {
+    opacity: 0.2;
+    background: #1a1a1a;
+    text-decoration: line-through;
+    filter: grayscale(1);
+    pointer-events: none; /* Prevents clicking */
+}
+
+/* Visual state for the Start button when requirements aren't met */
+#start-mission-btn:disabled {
+    background: #7f8c8d !important;
+    color: #bdc3c7 !important;
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Styling for the manual word input area to match theme */
+#manualWordInput {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: white;
+    padding-left: 15px;
+}
+
+#manualWordInput:focus {
+    outline: none;
+    border-color: var(--gold);
+}

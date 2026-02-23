@@ -45,15 +45,20 @@ function buildWordManager() {
     const container = document.getElementById('word-pack-container');
     if (!container) return;
 
-    // Restore saved settings to inputs
+    // Load saved inputs
     document.getElementById('teamRedName').value = localStorage.getItem('teamRedName') || "Red Team";
     document.getElementById('teamBlueName').value = localStorage.getItem('teamBlueName') || "Blue Team";
     document.getElementById('gridSize').value = localStorage.getItem('gridSize') || "5";
     
-    // Crucial: Load the saved difficulty level into the dropdown
     const savedDifficulty = localStorage.getItem('gameDifficulty') || "2";
     const diffSelect = document.getElementById('difficulty-select');
-    if(diffSelect) diffSelect.value = savedDifficulty;
+    if(diffSelect) {
+        diffSelect.value = savedDifficulty;
+        diffSelect.addEventListener('change', refreshWordVisibility);
+    }
+    
+    // Grid size change listener to update requirements
+    document.getElementById('gridSize').addEventListener('change', updateStartButton);
 
     for (let packKey in wordPacks) {
         const pack = wordPacks[packKey];
@@ -86,7 +91,8 @@ function buildWordManager() {
             pack[subType].forEach(wordObj => {
                 let wordBox = document.createElement('div');
                 wordBox.className = 'word-option';
-                wordBox.innerHTML = `<input type="checkbox" checked class="word-check" data-word="${wordObj.w}" data-level="${wordObj.d}"> ${wordObj.w}`;
+                wordBox.setAttribute('data-level', wordObj.d);
+                wordBox.innerHTML = `<input type="checkbox" checked class="word-check" data-word="${wordObj.w}" data-level="${wordObj.d}" onchange="updateStartButton()"> ${wordObj.w}`;
                 wordGrid.appendChild(wordBox);
             });
             subContainer.appendChild(subHeader);
@@ -94,16 +100,79 @@ function buildWordManager() {
         });
         container.appendChild(subContainer);
     }
+    refreshWordVisibility();
+}
+
+// Visually hide/dim words based on Difficulty
+function refreshWordVisibility() {
+    const maxDiff = parseInt(document.getElementById('difficulty-select').value);
+    const allOptions = document.querySelectorAll('.word-option');
+    
+    allOptions.forEach(opt => {
+        const level = parseInt(opt.getAttribute('data-level'));
+        if (level > maxDiff) {
+            opt.classList.add('difficulty-hidden');
+            opt.querySelector('input').disabled = true;
+        } else {
+            opt.classList.remove('difficulty-hidden');
+            opt.querySelector('input').disabled = false;
+        }
+    });
+    updateStartButton();
+}
+
+// Logic for custom word addition inside Setup
+function addManualWord() {
+    const input = document.getElementById('manualWordInput');
+    const word = input.value.trim();
+    if (word) {
+        const container = document.querySelector('.word-grid');
+        if(!container) return;
+        let wordBox = document.createElement('div');
+        wordBox.className = 'word-option';
+        wordBox.setAttribute('data-level', 1);
+        wordBox.innerHTML = `<input type="checkbox" checked class="word-check" data-word="${word}" data-level="1" onchange="updateStartButton()"> ${word}`;
+        container.prepend(wordBox);
+        input.value = "";
+        updateStartButton();
+    }
+}
+
+// Prevent start if word count is too low
+function updateStartButton() {
+    const startBtn = document.getElementById('start-mission-btn');
+    if(!startBtn) return;
+
+    const gridSize = parseInt(document.getElementById('gridSize').value);
+    const required = gridSize * gridSize;
+    
+    // Count only checked words that aren't disabled by difficulty
+    const checkedValid = document.querySelectorAll('.word-check:checked:not(:disabled)');
+    const count = checkedValid.length;
+
+    startBtn.innerText = `🚀 START MISSION (${count}/${required})`;
+
+    if (count < required) {
+        startBtn.style.opacity = "0.5";
+        startBtn.style.cursor = "not-allowed";
+        startBtn.disabled = true;
+    } else {
+        startBtn.style.opacity = "1";
+        startBtn.style.cursor = "pointer";
+        startBtn.disabled = false;
+    }
 }
 
 function toggleCategory(masterCheckbox, listId) {
-    const checkboxes = document.querySelectorAll(`#${listId} .word-check`);
+    const checkboxes = document.querySelectorAll(`#${listId} .word-check:not(:disabled)`);
     checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+    updateStartButton();
 }
 
 function clearAll() {
     document.querySelectorAll('.word-check').forEach(cb => cb.checked = false);
     document.querySelectorAll('.type-toggle').forEach(cb => cb.checked = false);
+    updateStartButton();
 }
 
 function toggleVisibility(id) {
@@ -113,9 +182,10 @@ function toggleVisibility(id) {
 
 function randomAll() {
     clearAll();
-    const allBoxes = Array.from(document.querySelectorAll('.word-check'));
-    const shuffled = allBoxes.sort(() => 0.5 - Math.random());
+    const allValid = Array.from(document.querySelectorAll('.word-check:not(:disabled)'));
+    const shuffled = allValid.sort(() => 0.5 - Math.random());
     for(let i=0; i < 60; i++) { if(shuffled[i]) shuffled[i].checked = true; }
+    updateStartButton();
 }
 
 function saveSettings() {
@@ -128,7 +198,7 @@ function saveSettings() {
     localStorage.setItem('teamBlueName', document.getElementById('teamBlueName').value || "Blue Team");
     
     let activeWords = [];
-    document.querySelectorAll('.word-check:checked').forEach(cb => {
+    document.querySelectorAll('.word-check:checked:not(:disabled)').forEach(cb => {
         activeWords.push({w: cb.getAttribute('data-word'), d: parseInt(cb.getAttribute('data-level'))});
     });
     localStorage.setItem('activeWords', JSON.stringify(activeWords));
@@ -146,21 +216,9 @@ function loadGame() {
 
     const gridSize = parseInt(localStorage.getItem('gridSize')) || 5;
     const allSelectedWords = JSON.parse(localStorage.getItem('activeWords') || "[]"); 
-    const maxDiff = parseInt(localStorage.getItem('gameDifficulty') || 2);
-
-    // Filtering logic based on the difficulty saved in Setup
-    let filteredWords = allSelectedWords
-        .filter(obj => obj.d <= maxDiff)
-        .map(obj => obj.w);
-
-    if (filteredWords.length < (gridSize * gridSize)) {
-        board.innerHTML = `<div style='grid-column: 1/-1; text-align:center; padding: 20px;'>
-            <h2 style='color:white;'>Not enough words for Level ${maxDiff}.</h2>
-            <p style='color:white;'>Current pool: ${filteredWords.length} words. Need: ${gridSize * gridSize}.</p>
-            <button class='menu-btn' onclick="window.location.href='setup.html'">Back to Setup</button>
-        </div>`;
-        return;
-    }
+    
+    // We only take the words already filtered by saveSettings()
+    let filteredWords = allSelectedWords.map(obj => obj.w);
 
     let gameWords = filteredWords.sort(() => 0.5 - Math.random()).slice(0, gridSize * gridSize);
     
@@ -302,5 +360,7 @@ function toggleSpy(show) {
 }
 
 // 4. INITIALIZATION
-if (document.getElementById('word-pack-container')) buildWordManager();
-if (document.getElementById('game-board')) loadGame();
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('word-pack-container')) buildWordManager();
+    if (document.getElementById('game-board')) loadGame();
+});

@@ -49,7 +49,7 @@
         <p style="font-size: 0.85rem; color: #bdc3c7;">Toggle categories to include specific scripture themes.</p>
         
         <div id="word-pack-container" style="max-height: 30vh; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid #444; margin-bottom: 10px;">
-            </div>
+        </div>
 
         <div style="display: flex; gap: 10px; margin-top: 10px;">
             <button class="btn" onclick="randomAll()" style="background: #e67e22; flex: 2; font-size: 0.8rem;">🎲 RANDOM SELECT (60)</button>
@@ -58,9 +58,15 @@
 
         <hr style="border: 0; border-top: 1px solid #444; margin: 20px 0;">
 
+        <h3 style="color: var(--gold);">MANUAL INTEL (CUSTOM)</h3>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <input type="text" id="manualWordInput" placeholder="Enter word (e.g. Bishop Name)" class="btn" style="flex: 3; text-align: left; padding-left: 15px; background: #1a1a1a;">
+            <button onclick="addManualWord()" class="btn" style="flex: 1; background: #8e44ad; font-size: 0.9rem; margin: 10px 0;">➕ ADD</button>
+        </div>
+
         <div style="margin-top:10px; display: flex; flex-direction: column; gap: 10px;">
             <button class="btn" id="saveBtn" onclick="saveSettings()" style="background: #27ae60; font-weight: bold; font-size: 1.1rem;">💾 SAVE SETTINGS</button>
-            <button class="btn" onclick="saveSettings(); window.location.href='game.html'" style="background: var(--gold); color: black; font-weight: bold; font-size: 1.3rem;">🚀 START GAME</button>
+            <button class="btn" id="start-mission-btn" onclick="saveSettings(); window.location.href='game.html'" style="background: var(--gold); color: black; font-weight: bold; font-size: 1.3rem;">🚀 START MISSION</button>
         </div>
     </div>
 
@@ -75,6 +81,18 @@
             const toast = document.getElementById('toast');
             toast.style.display = 'block';
             setTimeout(() => { toast.style.display = 'none'; }, 2000);
+            
+            // Sync the start button count after saving
+            if (typeof updateStartButton === "function") {
+                updateStartButton();
+            }
+        };
+
+        // Initialize word manager on load
+        window.onload = () => {
+            if (typeof buildWordManager === "function") {
+                buildWordManager();
+            }
         };
     </script>
 </body>
