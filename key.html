@@ -1,66 +1,105 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="style.css">
-    <title>Spymaster Key</title>
+    <title>Spymaster Intel</title>
     <style>
-        body { background: #000; padding: 20px; }
-        #auth-screen { text-align: center; margin-top: 50px; }
+        body { background: #000; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; box-sizing: border-box; }
+        #auth-screen { text-align: center; width: 100%; }
+        
         #key-grid { 
             display: none; 
-            grid-template-columns: repeat(5, 1fr); 
-            gap: 10px; 
+            gap: 8px; 
             width: 100%; 
-            max-width: 500px;
+            max-width: 450px;
             margin: 0 auto;
         }
+
         .key-cell {
             aspect-ratio: 1;
-            border-radius: 8px;
-            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
         }
-        .R { background: var(--red); }
-        .B { background: var(--blue); }
-        .N { background: var(--neutral); }
-        .X { background: var(--assassin); position: relative; }
-        .X::after { content: "☠️"; display: flex; align-items: center; justify-content: center; height: 100%; font-size: 1.5rem; }
+
+        /* Color Mapping */
+        .R { background: var(--red); box-shadow: inset 0 0 15px #7b1e1c; }
+        .B { background: var(--blue); box-shadow: inset 0 0 15px #1a145e; }
+        .N { background: var(--neutral); box-shadow: inset 0 0 15px #9e7e10; }
+        .X { 
+            background: #222; 
+            position: relative; 
+            border: 2px solid #ff4757;
+        }
+        .X::after { 
+            content: "☠️"; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100%; 
+            font-size: 1.2rem; 
+        }
+
+        #pass-input {
+            background: #222;
+            color: var(--gold);
+            border: 2px solid #444;
+            padding: 15px;
+            font-size: 1.2rem;
+            text-align: center;
+            width: 80%;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
 
     <div id="auth-screen">
-        <h2 style="color: var(--gold);">🔒 ENCRYPTED DATA</h2>
-        <p>Enter Spymaster Code to Decrypt</p>
-        <input type="password" id="pass-input" style="padding: 10px; border-radius: 5px; border: none; width: 80%; max-width: 200px;">
-        <br><br>
-        <button class="btn" onclick="checkPass()" style="width: auto; padding: 10px 30px;">DECRYPT</button>
+        <div style="font-size: 3rem; margin-bottom: 10px;">🔐</div>
+        <h2 style="color: var(--gold); margin-top: 0; letter-spacing: 2px;">SPYMASTER ACCESS</h2>
+        <p style="color: #bdc3c7;">Enter Decryption Key:</p>
+        <input type="password" id="pass-input" autofocus>
+        <br>
+        <button class="btn" onclick="checkPass()" style="width: 80%; max-width: 250px; background: #27ae60;">DECRYPT DATA</button>
     </div>
 
     <div id="key-grid"></div>
+    <p id="rotate-hint" style="display:none; color: #555; font-size: 0.7rem; margin-top: 20px;">TIP: ROTATE PHONE FOR LARGER VIEW</p>
 
     <script>
-        const SECRET_CODE = "zion"; // <--- CHANGE THIS TO YOUR PASSWORD
+        const SECRET_CODE = "zion"; 
+
+        // Listen for "Enter" key
+        document.getElementById('pass-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') checkPass();
+        });
 
         function checkPass() {
             const input = document.getElementById('pass-input').value.toLowerCase();
             if (input === SECRET_CODE) {
                 document.getElementById('auth-screen').style.display = 'none';
                 document.getElementById('key-grid').style.display = 'grid';
+                document.getElementById('rotate-hint').style.display = 'block';
                 renderKey();
             } else {
-                alert("ACCESS DENIED");
+                alert("INVALID KEY - ACCESS DENIED");
+                document.getElementById('pass-input').value = "";
             }
         }
 
         function renderKey() {
             const params = new URLSearchParams(window.location.search);
-            const layout = params.get('layout'); // e.g., "RRBBN..."
+            const layout = params.get('layout'); 
             const grid = document.getElementById('key-grid');
             
-            if (!layout) return;
+            if (!layout) {
+                grid.innerHTML = "<p style='color:red'>ERROR: No Layout Data</p>";
+                return;
+            }
 
-            // Adjust grid columns based on layout length
             const size = Math.sqrt(layout.length);
             grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
 

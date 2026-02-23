@@ -1,21 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
-    <title>Codenames TV</title>
+    <title>Codenames: LDS Youth Edition</title>
 </head>
 <body>
     <div class="menu-card">
-        <h1 style="font-size: 3rem; color: var(--neutral);">Code Names</h1>
-        <p>LDS Youth Edition</p>
-        <a href="game.html" class="btn" style="background: #27ae60;">🚀 START GAME</a>
-        <a href="setup.html" class="btn">⚙️ SETUP</a>
-        <div style="margin-top: 20px; text-align: left; border-top: 1px solid #444; padding-top: 10px;">
-            <h3>Quick Rules:</h3>
-            <p>1. Give a 1-word clue and a number.</p>
-            <p>2. Don't say the word on the card!</p>
-            <p>3. Avoid the Black card (Assassin).</p>
+        <h1 style="font-size: 3.5rem; color: var(--gold); margin-bottom: 0;">CODE NAMES</h1>
+        <p style="letter-spacing: 3px; color: #bdc3c7; margin-top: 0;">LDS YOUTH EDITION</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+            <a href="game.html" class="btn" style="background: #27ae60;">🚀 START MISSION</a>
+            <a href="setup.html" class="btn" style="background: #2980b9;">⚙️ SETUP BOARD</a>
+            
+            <button onclick="addCustomWord()" class="btn" style="background: #8e44ad; font-size: 0.9rem;">➕ ADD CUSTOM WORD</button>
+        </div>
+
+        <div style="margin-top: 30px; text-align: left; border-top: 1px solid #444; padding-top: 15px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+            <h3 style="color: var(--gold); margin-top: 0;">Field Manual:</h3>
+            <ul style="padding-left: 20px; color: #ecf0f1; line-height: 1.6;">
+                <li><strong>Spymaster:</strong> Give a 1-word clue + a number (e.g., "Apostle: 3").</li>
+                <li><strong>Agents:</strong> Tap cards to reveal them. Correct = Keep going!</li>
+                <li><strong>Turn Ends:</strong> If you hit a neutral card or the other team's card.</li>
+                <li><strong>Game Over:</strong> If you reveal the <span style="color: #ff4757; font-weight: bold;">ASSASSIN</span> card.</li>
+            </ul>
         </div>
     </div>
+
+    <script>
+        function addCustomWord() {
+            const word = prompt("Enter a custom word (e.g., a local leader's name or stake theme):");
+            if (word && word.trim() !== "") {
+                let activeWords = JSON.parse(localStorage.getItem('activeWords') || "[]");
+                activeWords.push(word.trim());
+                localStorage.setItem('activeWords', JSON.stringify(activeWords));
+                alert(`"${word}" has been added to the mission list!`);
+            }
+        }
+    </script>
 </body>
 </html>

@@ -13,48 +13,67 @@
             <div id="red-team-display">RED TEAM</div>
             <div id="red-count">0</div>
         </div>
+        <div id="timer-container" style="text-align: center; min-width: 100px;">
+            <div style="font-size: 0.8rem; color: var(--gold); letter-spacing: 2px;">TURN TIMER</div>
+            <div id="timer" style="font-size: 2.5rem; font-family: monospace; color: #ff4757; font-weight: bold;">60s</div>
+        </div>
         <div class="score-box blue-score">
             <div id="blue-team-display">BLUE TEAM</div>
             <div id="blue-count">0</div>
         </div>
     </div>
 
+    <div style="margin-bottom: 10px; text-align: center;">
+        <label for="difficulty-select" style="font-weight: bold; color: var(--gold);">MAX DIFFICULTY:</label>
+        <select id="difficulty-select" class="btn" style="width: auto; display: inline-block; padding: 5px 15px; background: #34495e;">
+            <option value="1">Level 1: Easy (Primary)</option>
+            <option value="2" selected>Level 2: Medium (Seminary)</option>
+            <option value="3">Level 3: Hard (Scholar)</option>
+        </select>
+    </div>
+
     <div id="game-board"></div>
 
     <div class="controls" style="margin-top: 20px; text-align: center;">
         <button class="btn" style="background: #27ae60; width: auto; display: inline-block;" onclick="location.reload()">RE-SHUFFLE</button>
-        
         <button class="btn" style="background: #34495e; width: auto; display: inline-block;" onclick="toggleTurn()">END TURN</button>
-        
         <button class="btn" style="background: #8e44ad; width: auto; display: inline-block;" 
-            onmousedown="toggleSpy(true)" 
-            onmouseup="toggleSpy(false)"
-            ontouchstart="event.preventDefault(); toggleSpy(true)" 
-            ontouchend="toggleSpy(false)">
+            onmousedown="toggleSpy(true)" onmouseup="toggleSpy(false)"
+            ontouchstart="event.preventDefault(); toggleSpy(true)" ontouchend="toggleSpy(false)">
             HOLD TO PEEK
         </button>
-
         <a href="index.html" class="btn" style="background: #7f8c8d; width: auto; display: inline-block;">QUIT</a>
     </div>
 
-    <div style="margin-top: 30px; text-align: center;">
-        <div id="qrcode" style="background: white; padding: 10px; display: inline-block; border-radius: 5px;"></div>
-        <p style="font-size: 1rem; color: #aaa; margin-top: 5px;">Spymasters: Scan for the Key</p>
+    <div style="margin-top: 30px; text-align: center; position: relative;">
+        <div id="qr-wrapper" style="display: none; background: white; padding: 15px; border-radius: 10px; position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 100;">
+            <div id="qrcode"></div>
+            <p style="color: black; margin-top: 5px; font-weight: bold;">SPYMASTER KEY</p>
+        </div>
+        <button class="btn" style="background: #2c3e50; width: auto; display: inline-block;"
+            onmousedown="document.getElementById('qr-wrapper').style.display='block'" 
+            onmouseup="document.getElementById('qr-wrapper').style.display='none'"
+            ontouchstart="event.preventDefault(); document.getElementById('qr-wrapper').style.display='block'" 
+            ontouchend="document.getElementById('qr-wrapper').style.display='none'">
+            🔒 HOLD TO SHOW QR
+        </button>
     </div>
 
-    <div id="winner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-        <h1 style="font-size: 5rem; color: #f9ca24; margin: 0; text-shadow: 0 0 20px #f9ca24;">CONGRATULATIONS!</h1>
-        <div id="winner-name" style="font-size: 4rem; font-weight: bold; color: white; margin: 20px 0;">TEAM NAME</div>
-        <p style="font-size: 2rem; color: #ccc;">Has Cleared the Board!</p>
-        <button class="btn" style="width: 300px; margin-top: 40px;" onclick="location.reload()">PLAY AGAIN</button>
+    <div id="winner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center;">
+        <h1 style="font-size: 5rem; color: #f9ca24;">CONGRATULATIONS!</h1>
+        <div id="winner-name" style="font-size: 4rem; color: white;">TEAM NAME</div>
+        <button class="btn" style="width: 300px;" onclick="location.reload()">PLAY AGAIN</button>
     </div>
 
-    <div id="game-over-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20,0,0,0.95); z-index: 1001; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-        <h1 style="font-size: 5rem; color: #ff4757; margin: 0; text-shadow: 0 0 20px #ff4757;">GAME OVER</h1>
-        <div id="loser-name" style="font-size: 3rem; font-weight: bold; color: white; margin: 20px 0;">TEAM NAME</div>
-        <p style="font-size: 2rem; color: #ccc;">Has found the Assassin!</p>
-        <button class="btn" style="background: #ff4757; width: 300px; margin-top: 40px;" onclick="location.reload()">TRY AGAIN</button>
+    <div id="game-over-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(20,0,0,0.95); z-index: 1001; flex-direction: column; align-items: center; justify-content: center;">
+        <h1 style="font-size: 5rem; color: #ff4757;">GAME OVER</h1>
+        <div id="loser-name" style="font-size: 3rem; color: white;">TEAM NAME</div>
+        <button class="btn" style="background: #ff4757; width: 300px;" onclick="location.reload()">TRY AGAIN</button>
     </div>
+
+    <audio id="sound-correct" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="sound-fail" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+    <audio id="sound-win" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
 
     <script src="script.js"></script>
 </body>
