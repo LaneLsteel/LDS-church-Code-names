@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spymaster Key</title>
+    <style>
+        body { font-family: sans-serif; background: #222; color: white; text-align: center; padding: 10px; }
+        .grid { 
+            display: grid; 
+            grid-template-columns: repeat(5, 1fr); 
+            gap: 5px; 
+            max-width: 400px; 
+            margin: 20px auto; 
+        }
+        .key-card { 
+            aspect-ratio: 1/1; 
+            border-radius: 4px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-weight: bold; 
+            font-size: 0.8rem;
+        }
+        .R { background: #eb4d4b; } /* Red */
+        .B { background: #4834d4; } /* Blue */
+        .N { background: #f9ca24; color: #222; } /* Neutral */
+        .X { background: #000; color: white; border: 2px solid #555; } /* Assassin */
+    </style>
+</head>
+<body>
+    <h2>SPYMASTER KEY</h2>
+    <div id="key-grid" class="grid"></div>
+    <p id="word-list" style="text-align: left; font-size: 0.9rem; color: #ccc;"></p>
+
+    <script>
+        // This script reads the layout from the URL: key.html?layout=RRRBBBN...
+        const params = new URLSearchParams(window.location.search);
+        const layout = params.get('layout') || "";
+        const grid = document.getElementById('key-grid');
+
+        if (layout.length >= 16) {
+            const size = Math.sqrt(layout.length);
+            grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+
+            layout.split('').forEach((char, i) => {
+                const div = document.createElement('div');
+                div.className = `key-card ${char}`;
+                div.innerText = i + 1; // Numbers the cards 1-25
+                grid.appendChild(div);
+            });
+        } else {
+            document.body.innerHTML += "<p>Invalid Key Code</p>";
+        }
+    </script>
+</body>
+</html>
