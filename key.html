@@ -1,56 +1,74 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
     <title>Spymaster Key</title>
     <style>
-        body { font-family: sans-serif; background: #222; color: white; text-align: center; padding: 10px; }
-        .grid { 
-            display: grid; 
+        body { background: #000; padding: 20px; }
+        #auth-screen { text-align: center; margin-top: 50px; }
+        #key-grid { 
+            display: none; 
             grid-template-columns: repeat(5, 1fr); 
-            gap: 5px; 
-            max-width: 400px; 
-            margin: 20px auto; 
+            gap: 10px; 
+            width: 100%; 
+            max-width: 500px;
+            margin: 0 auto;
         }
-        .key-card { 
-            aspect-ratio: 1/1; 
-            border-radius: 4px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-weight: bold; 
-            font-size: 0.8rem;
+        .key-cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.1);
         }
-        .R { background: #eb4d4b; } /* Red */
-        .B { background: #4834d4; } /* Blue */
-        .N { background: #f9ca24; color: #222; } /* Neutral */
-        .X { background: #000; color: white; border: 2px solid #555; } /* Assassin */
+        .R { background: var(--red); }
+        .B { background: var(--blue); }
+        .N { background: var(--neutral); }
+        .X { background: var(--assassin); position: relative; }
+        .X::after { content: "☠️"; display: flex; align-items: center; justify-content: center; height: 100%; font-size: 1.5rem; }
     </style>
 </head>
 <body>
-    <h2>SPYMASTER KEY</h2>
-    <div id="key-grid" class="grid"></div>
-    <p id="word-list" style="text-align: left; font-size: 0.9rem; color: #ccc;"></p>
+
+    <div id="auth-screen">
+        <h2 style="color: var(--gold);">🔒 ENCRYPTED DATA</h2>
+        <p>Enter Spymaster Code to Decrypt</p>
+        <input type="password" id="pass-input" style="padding: 10px; border-radius: 5px; border: none; width: 80%; max-width: 200px;">
+        <br><br>
+        <button class="btn" onclick="checkPass()" style="width: auto; padding: 10px 30px;">DECRYPT</button>
+    </div>
+
+    <div id="key-grid"></div>
 
     <script>
-        // This script reads the layout from the URL: key.html?layout=RRRBBBN...
-        const params = new URLSearchParams(window.location.search);
-        const layout = params.get('layout') || "";
-        const grid = document.getElementById('key-grid');
+        const SECRET_CODE = "zion"; // <--- CHANGE THIS TO YOUR PASSWORD
 
-        if (layout.length >= 16) {
+        function checkPass() {
+            const input = document.getElementById('pass-input').value.toLowerCase();
+            if (input === SECRET_CODE) {
+                document.getElementById('auth-screen').style.display = 'none';
+                document.getElementById('key-grid').style.display = 'grid';
+                renderKey();
+            } else {
+                alert("ACCESS DENIED");
+            }
+        }
+
+        function renderKey() {
+            const params = new URLSearchParams(window.location.search);
+            const layout = params.get('layout'); // e.g., "RRBBN..."
+            const grid = document.getElementById('key-grid');
+            
+            if (!layout) return;
+
+            // Adjust grid columns based on layout length
             const size = Math.sqrt(layout.length);
             grid.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
 
-            layout.split('').forEach((char, i) => {
-                const div = document.createElement('div');
-                div.className = `key-card ${char}`;
-                div.innerText = i + 1; // Numbers the cards 1-25
-                grid.appendChild(div);
+            layout.split('').forEach(type => {
+                const cell = document.createElement('div');
+                cell.className = `key-cell ${type}`;
+                grid.appendChild(cell);
             });
-        } else {
-            document.body.innerHTML += "<p>Invalid Key Code</p>";
         }
     </script>
 </body>

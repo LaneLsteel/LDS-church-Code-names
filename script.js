@@ -1,3 +1,4 @@
+// 1. DATA AND GLOBAL VARIABLES
 const wordPacks = {
     bom: {
         label: "Book of Mormon",
@@ -35,6 +36,9 @@ const wordPacks = {
     }
 };
 
+let currentTurn = 'red'; 
+
+// 2. SETUP PAGE LOGIC
 function buildWordManager() {
     const container = document.getElementById('word-pack-container');
     if (!container) return;
@@ -52,18 +56,14 @@ function buildWordManager() {
         subContainer.className = 'sub-container';
         subContainer.style.display = 'none';
         
-        // Updated to include 'mastery' along with people, places, and things
         ["people", "places", "things", "mastery"].forEach(subType => {
-            if(!pack[subType]) return; // Skip if a pack (like PGP) doesn't have mastery
-            
+            if(!pack[subType]) return;
             let subHeader = document.createElement('div');
             subHeader.className = 'sub-header';
             let listId = `list-${packKey}-${subType}`;
             let displayTitle = subType === 'mastery' ? "SCRIPTURE MASTERY" : subType.toUpperCase();
-            
             subHeader.innerHTML = `<span>${displayTitle}</span> <input type="checkbox" checked class="type-toggle" onclick="toggleCategory(this, '${listId}')">`;
             subHeader.onclick = (e) => { if(e.target.type !== 'checkbox') toggleVisibility(listId); };
-            
             let wordGrid = document.createElement('div');
             wordGrid.id = listId;
             wordGrid.className = 'word-grid';
@@ -114,6 +114,7 @@ function saveSettings() {
     alert("Settings Saved!");
 }
 
+// 3. GAME PAGE LOGIC
 function loadGame() {
     const board = document.getElementById('game-board');
     if (!board) return;
@@ -123,6 +124,13 @@ function loadGame() {
     document.getElementById('blue-team-display').innerText = teamBlue;
     const gridSize = parseInt(localStorage.getItem('gridSize')) || 5;
     const activeWords = JSON.parse(localStorage.getItem('activeWords') || "[]");
+
+    // Fix: Show a warning if no words were picked instead of the winner screen
+    if (activeWords.length < (gridSize * gridSize)) {
+        board.innerHTML = "<h2 style='grid-column: 1/-1; text-align:center;'>Not enough words! Go to SETUP and pick more or click RANDOM 60.</h2>";
+        return;
+    }
+
     let gameWords = activeWords.sort(() => 0.5 - Math.random()).slice(0, gridSize * gridSize);
     let roles = ["assassin"];
     let redN = Math.floor((gridSize * gridSize) / 3) + 1;
@@ -134,6 +142,7 @@ function loadGame() {
     board.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
     board.innerHTML = '';
     window.currentGameData = [];
+    
     gameWords.forEach((word, i) => {
         let role = roles[i];
         window.currentGameData.push({ word, role, revealed: false });
@@ -148,28 +157,51 @@ function loadGame() {
             if(role === 'assassin') {
                 showGameOver();
             } else {
+                if (role !== currentTurn) { toggleTurn(); }
                 updateGameScore();
             }
         };
         board.appendChild(card);
     });
+
+    currentTurn = 'red'; // Reset turn to red on load
     updateGameScore();
     generateSpymasterQR();
 }
 
-function updateGameScore() {
-    const r = window.currentGameData.filter(d => d.role === 'red' && !d.revealed).length;
-    const b = window.currentGameData.filter(d => d.role === 'blue' && !d.revealed).length;
-    document.getElementById('red-count').innerText = r;
-    document.getElementById('blue-count').innerText = b;
+function toggleTurn() {
+    currentTurn = (currentTurn === 'red') ? 'blue' : 'red';
+    applyTurnGlow();
+}
+
+function applyTurnGlow() {
     const redBox = document.querySelector('.red-score');
     const blueBox = document.querySelector('.blue-score');
+    if(!redBox || !blueBox) return;
     redBox.classList.remove('active-team');
     blueBox.classList.remove('active-team');
-    if (r >= b && r > 0) redBox.classList.add('active-team');
-    else if (b > 0) blueBox.classList.add('active-team');
-    if (r === 0) showWinner(localStorage.getItem('teamRedName') || "Red Team");
-    else if (b === 0) showWinner(localStorage.getItem('teamBlueName') || "Blue Team");
+    if (currentTurn === 'red') { redBox.classList.add('active-team'); } 
+    else { blueBox.classList.add('active-team'); }
+}
+
+function updateGameScore() {
+    // Check if game data exists before calculating
+    if (!window.currentGameData || window.currentGameData.length === 0) return;
+
+    const r = window.currentGameData.filter(d => d.role === 'red' && !d.revealed).length;
+    const b = window.currentGameData.filter(d => d.role === 'blue' && !d.revealed).length;
+    
+    document.getElementById('red-count').innerText = r;
+    document.getElementById('blue-count').innerText = b;
+    
+    applyTurnGlow();
+
+    // Fix: Only trigger win if the total cards are 0 AND the board was actually loaded
+    if (r === 0 && window.currentGameData.length > 0) {
+        showWinner(localStorage.getItem('teamRedName') || "Red Team");
+    } else if (b === 0 && window.currentGameData.length > 0) {
+        showWinner(localStorage.getItem('teamBlueName') || "Blue Team");
+    }
 }
 
 function showWinner(name) {
@@ -178,7 +210,7 @@ function showWinner(name) {
 }
 
 function showGameOver() {
-    const isRedTurn = document.querySelector('.red-score').classList.contains('active-team');
+    const isRedTurn = currentTurn === 'red';
     document.getElementById('loser-name').innerText = isRedTurn ? (localStorage.getItem('teamRedName') || "Red Team") : (localStorage.getItem('teamBlueName') || "Blue Team");
     document.getElementById('game-over-overlay').style.display = 'flex';
 }
@@ -201,5 +233,6 @@ function toggleSpy(show) {
     });
 }
 
+// 4. INITIALIZATION
 if (document.getElementById('word-pack-container')) buildWordManager();
 if (document.getElementById('game-board')) loadGame();

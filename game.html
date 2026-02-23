@@ -21,9 +21,19 @@
 
     <div id="game-board"></div>
 
-    <div class="controls" style="margin-top: 20px;">
+    <div class="controls" style="margin-top: 20px; text-align: center;">
         <button class="btn" style="background: #27ae60; width: auto; display: inline-block;" onclick="location.reload()">RE-SHUFFLE</button>
-        <button class="btn" style="background: #8e44ad; width: auto; display: inline-block;" onmousedown="toggleSpy(true)" onmouseup="toggleSpy(false)">HOLD TO PEEK</button>
+        
+        <button class="btn" style="background: #34495e; width: auto; display: inline-block;" onclick="toggleTurn()">END TURN</button>
+        
+        <button class="btn" style="background: #8e44ad; width: auto; display: inline-block;" 
+            onmousedown="toggleSpy(true)" 
+            onmouseup="toggleSpy(false)"
+            ontouchstart="event.preventDefault(); toggleSpy(true)" 
+            ontouchend="toggleSpy(false)">
+            HOLD TO PEEK
+        </button>
+
         <a href="index.html" class="btn" style="background: #7f8c8d; width: auto; display: inline-block;">QUIT</a>
     </div>
 
