@@ -15,8 +15,6 @@
             <a href="game.html" class="btn" style="background: #27ae60; font-size: 1.5rem;">🚀 START MISSION</a>
             
             <a href="setup.html" class="btn" style="background: var(--dark-slate); border: 2px solid var(--gold); color: white;">⚙️ SETUP BOARD</a>
-            
-            <button onclick="addCustomWord()" class="btn" style="background: #8e44ad; font-size: 0.9rem; opacity: 0.9;">➕ ADD QUICK CUSTOM WORD</button>
         </div>
 
         <div style="margin-top: 30px; text-align: left; border-top: 2px solid var(--gold); padding-top: 15px; background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px;">
@@ -33,27 +31,15 @@
     </div>
 
     <script>
-        function addCustomWord() {
-            const word = prompt("Enter a custom word (e.g., a local leader's name or stake theme):");
-            if (word && word.trim() !== "") {
-                // Get existing words
-                let activeWords = JSON.parse(localStorage.getItem('activeWords') || "[]");
-                
-                // Format it like the objects in script.js so difficulty filtering doesn't break
-                // We'll give custom words a difficulty of 1 so they always show up
-                activeWords.push({ w: word.trim(), d: 1 });
-                
-                localStorage.setItem('activeWords', JSON.stringify(activeWords));
-                alert(`"${word}" has been added to the mission list!`);
-            }
-        }
-
-        // Safety Check: If they click Start Mission but haven't set up yet
+        // Safety Check: Prevent game start if no settings exist or not enough words are selected
         document.querySelector('a[href="game.html"]').addEventListener('click', function(e) {
             const words = localStorage.getItem('activeWords');
-            if (!words || JSON.parse(words).length < 16) {
+            const grid = parseInt(localStorage.getItem('gridSize')) || 5;
+            const required = grid * grid;
+
+            if (!words || JSON.parse(words).length < required) {
                 e.preventDefault();
-                alert("Mission Intelligence required. Please visit SETUP BOARD first to select your word packs!");
+                alert(`Mission Intelligence required. You need at least ${required} words selected for a ${grid}x${grid} board. Redirecting to Setup...`);
                 window.location.href = 'setup.html';
             }
         });
