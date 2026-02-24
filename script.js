@@ -353,10 +353,26 @@ function toggleSpy(show) {
 function generateSpymasterQR() {
     const qrContainer = document.getElementById("qrcode");
     if (!qrContainer || typeof QRCode === "undefined") return;
-    let layout = window.currentGameData.map(d => d.role[0].toUpperCase()).join('').replace('A', 'X');
-    const finalUrl = window.location.href.replace('game.html', 'key.html') + "?layout=" + layout;
+
+    // 1. Correctly map the layout string (X for assassin)
+    let layout = window.currentGameData.map(d => {
+        if (d.role === 'assassin') return 'X';
+        return d.role[0].toUpperCase();
+    }).join('');
+
+    // 2. Build a robust path for key.html
+    const path = window.location.pathname;
+    const directory = path.substring(0, path.lastIndexOf('/'));
+    const finalUrl = `${window.location.origin}${directory}/key.html?layout=${layout}`;
+
+    // 3. Render with high error correction
     qrContainer.innerHTML = "";
-    new QRCode(qrContainer, { text: finalUrl, width: 140, height: 140 });
+    new QRCode(qrContainer, { 
+        text: finalUrl, 
+        width: 160, 
+        height: 160,
+        correctLevel: QRCode.CorrectLevel.H 
+    });
 }
 
 function playSound(id) {
