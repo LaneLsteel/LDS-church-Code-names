@@ -1,4 +1,10 @@
-// 1. DATA WITH DIFFICULTY TAGS (1=Easy, 2=Med, 3=Hard)
+// 1. GLOBAL STATE
+let currentTurn = 'red';
+let timerInterval;
+let seconds = 60;
+window.currentGameData = [];
+
+// 2. DATA WITH DIFFICULTY TAGS (1=Easy, 2=Med, 3=Hard)
 const wordPacks = {
     bom: {
         label: "Book of Mormon",
@@ -52,25 +58,11 @@ const wordPacks = {
     }
 };
 
-// 2. SETUP PAGE LOGIC
+// 3. SETUP PAGE LOGIC
 function buildWordManager() {
     const container = document.getElementById('word-pack-container');
     if (!container) return;
-
     container.innerHTML = '';
-
-    document.getElementById('teamRedName').value = localStorage.getItem('teamRedName') || "Red Team";
-    document.getElementById('teamBlueName').value = localStorage.getItem('teamBlueName') || "Blue Team";
-    document.getElementById('gridSize').value = localStorage.getItem('gridSize') || "5";
-    
-    const savedDifficulty = localStorage.getItem('gameDifficulty') || "2";
-    const diffSelect = document.getElementById('difficulty-select');
-    if(diffSelect) {
-        diffSelect.value = savedDifficulty;
-        diffSelect.addEventListener('change', refreshWordVisibility);
-    }
-    
-    document.getElementById('gridSize').addEventListener('change', updateStartButton);
 
     for (let packKey in wordPacks) {
         const pack = wordPacks[packKey];
@@ -85,7 +77,6 @@ function buildWordManager() {
         subContainer.className = 'sub-container';
         subContainer.style.display = 'none';
         
-        // ADDED "prophets" and "apostles" to this list:
         ["people", "places", "things", "mastery", "prophets", "apostles"].forEach(subType => {
             if(!pack[subType]) return;
             let subHeader = document.createElement('div');
@@ -94,7 +85,6 @@ function buildWordManager() {
             let displayTitle = subType === 'mastery' ? "SCRIPTURE MASTERY" : subType.toUpperCase();
             
             subHeader.innerHTML = `<span>${displayTitle}</span> <input type="checkbox" checked class="type-toggle" onclick="toggleCategory(this, '${listId}')">`;
-            subHeader.onclick = (e) => { if(e.target.type !== 'checkbox') toggleVisibility(listId); };
             
             let wordGrid = document.createElement('div');
             wordGrid.id = listId;
@@ -113,27 +103,217 @@ function buildWordManager() {
         });
         container.appendChild(subContainer);
     }
-    refreshWordVisibility();
 }
-
 
 function refreshWordVisibility() {
     const diffEl = document.getElementById('difficulty-select');
     if (!diffEl) return;
     const maxDiff = parseInt(diffEl.value);
-    const allOptions = document.querySelectorAll('.word-option');
-    
-    allOptions.forEach(opt => {
+    document.querySelectorAll('.word-option').forEach(opt => {
         const level = parseInt(opt.getAttribute('data-level'));
+        const input = opt.querySelector('input');
         if (level > maxDiff) {
             opt.classList.add('difficulty-hidden');
-            opt.querySelector('input').disabled = true;
+            input.disabled = true;
+            input.checked = false;
         } else {
             opt.classList.remove('difficulty-hidden');
-            opt.querySelector('input').disabled = false;
+            input.disabled = false;
         }
     });
     updateStartButton();
+}
+
+function updateStartButton() {
+    const startBtn = document.getElementById('start-mission-btn');
+    const gridInput = document.getElementById('gridSize');
+    if(!startBtn || !gridInput) return;
+    const gridSize = parseInt(gridInput.value);
+    const required = gridSize * gridSize;
+    const count = document.querySelectorAll('.word-check:checked:not(:disabled)').length;
+    startBtn.innerText = `🚀 START MISSION (${count}/${required})`;
+    startBtn.disabled = count < required;
+    startBtn.style.opacity = count < required ? "0.5" : "1";
+}
+
+// 4. GAME PAGE LOGIC
+function loadGame() {
+    const board = document.getElementById('game-board');
+    if (!board) return;
+
+    document.getElementById('red-team-display').innerText = localStorage.getItem('teamRedName') || "RED TEAM";
+    document.getElementById('blue-team-display').innerText = localStorage.getItem('teamBlueName') || "BLUE TEAM";
+
+    const maxDiff = localStorage.getItem('gameDifficulty') || "2";
+    const labels = {"1": "EASY (PRIMARY)", "2": "NORMAL (SEMINARY)", "3": "HARD (SCHOLAR)"};
+    document.getElementById('difficulty-display').innerText = `INTEL LEVEL: ${labels[maxDiff]}`;
+
+    const gridSize = parseInt(localStorage.getItem('gridSize')) || 5;
+    const allSelectedWords = JSON.parse(localStorage.getItem('activeWords') || "[]"); 
+    let gameWords = allSelectedWords.sort(() => 0.5 - Math.random()).slice(0, gridSize * gridSize);
+    
+    let roles = ["assassin"];
+    let redN = Math.floor((gridSize * gridSize) / 3) + 1;
+    let blueN = Math.floor((gridSize * gridSize) / 3);
+    for(let i=0; i<redN; i++) roles.push("red");
+    for(let i=0; i<blueN; i++) roles.push("blue");
+    while(roles.length < (gridSize * gridSize)) roles.push("neutral");
+    roles = roles.sort(() => 0.5 - Math.random());
+
+    board.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+    board.innerHTML = '';
+    window.currentGameData = [];
+
+    gameWords.forEach((wordObj, i) => {
+        let role = roles[i];
+        window.currentGameData.push({ word: wordObj.w, role, revealed: false });
+        let card = document.createElement('div');
+        card.className = 'card';
+        card.id = `card-${i}`;
+        card.innerText = wordObj.w;
+        card.onclick = () => {
+            if(window.currentGameData[i].revealed) return;
+            window.currentGameData[i].revealed = true;
+            card.classList.add('revealed', role);
+            
+            if(role === 'assassin') {
+                playSound('sound-fail');
+                showGameOver();
+            } else if (role === 'neutral') {
+                toggleTurn();
+            } else {
+                if (role !== currentTurn) {
+                    toggleTurn();
+                } else {
+                    playSound('sound-correct');
+                }
+            }
+            updateGameScore();
+        };
+        board.appendChild(card);
+    });
+    
+    currentTurn = 'red';
+    updateGameScore();
+    generateSpymasterQR();
+    startTimer();
+}
+
+function updateGameScore() {
+    if (!window.currentGameData.length) return;
+    const r = window.currentGameData.filter(d => d.role === 'red' && !d.revealed).length;
+    const b = window.currentGameData.filter(d => d.role === 'blue' && !d.revealed).length;
+    
+    if(document.getElementById('red-count')) document.getElementById('red-count').innerText = r;
+    if(document.getElementById('blue-count')) document.getElementById('blue-count').innerText = b;
+
+    applyTurnGlow();
+
+    if (r === 0) { playSound('sound-win'); showWinner(localStorage.getItem('teamRedName') || "Red Team"); }
+    else if (b === 0) { playSound('sound-win'); showWinner(localStorage.getItem('teamBlueName') || "Blue Team"); }
+}
+
+function toggleTurn() {
+    currentTurn = (currentTurn === 'red') ? 'blue' : 'red';
+    applyTurnGlow();
+    startTimer();
+}
+
+function applyTurnGlow() {
+    const redBox = document.querySelector('.red-score');
+    const blueBox = document.querySelector('.blue-score');
+    if(!redBox || !blueBox) return;
+    redBox.classList.toggle('active-team', currentTurn === 'red');
+    blueBox.classList.toggle('active-team', currentTurn === 'blue');
+}
+
+function startTimer() {
+    if(timerInterval) clearInterval(timerInterval);
+    seconds = 60;
+    const timerEl = document.getElementById('timer');
+    if(!timerEl) return;
+    timerEl.innerText = "60s";
+    timerEl.classList.remove('low-time');
+    
+    timerInterval = setInterval(() => {
+        seconds--;
+        timerEl.innerText = seconds + "s";
+        if(seconds <= 10) timerEl.classList.add('low-time');
+        if(seconds <= 0) toggleTurn();
+    }, 1000);
+}
+
+// 5. UTILS & ACTIONS
+function saveSettings() {
+    localStorage.setItem('gridSize', document.getElementById('gridSize').value);
+    localStorage.setItem('gameDifficulty', document.getElementById('difficulty-select').value);
+    localStorage.setItem('teamRedName', document.getElementById('teamRedName').value || "Red Team");
+    localStorage.setItem('teamBlueName', document.getElementById('teamBlueName').value || "Blue Team");
+    
+    let activeWords = [];
+    document.querySelectorAll('.word-check:checked').forEach(cb => {
+        activeWords.push({w: cb.getAttribute('data-word'), d: parseInt(cb.getAttribute('data-level'))});
+    });
+    localStorage.setItem('activeWords', JSON.stringify(activeWords));
+}
+
+function toggleVisibility(id) {
+    const el = document.getElementById(id);
+    if(el) el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+}
+
+function toggleCategory(master, listId) {
+    document.querySelectorAll(`#${listId} .word-check:not(:disabled)`).forEach(cb => cb.checked = master.checked);
+    updateStartButton();
+}
+
+function clearAll() {
+    document.querySelectorAll('.word-check').forEach(cb => cb.checked = false);
+    updateStartButton();
+}
+
+function randomAll() {
+    clearAll();
+    const allValid = Array.from(document.querySelectorAll('.word-check:not(:disabled)'));
+    const shuffled = allValid.sort(() => 0.5 - Math.random());
+    for(let i=0; i < 60; i++) { if(shuffled[i]) shuffled[i].checked = true; }
+    updateStartButton();
+}
+
+function toggleSpy(show) {
+    window.currentGameData.forEach((data, i) => {
+        const card = document.getElementById(`card-${i}`);
+        if (!data.revealed) {
+            show ? card.classList.add('peek', `${data.role}-key`) : card.classList.remove('peek', 'red-key', 'blue-key', 'neutral-key', 'assassin-key');
+        }
+    });
+}
+
+function generateSpymasterQR() {
+    const qrContainer = document.getElementById("qrcode");
+    if (!qrContainer || typeof QRCode === "undefined") return;
+    let layout = window.currentGameData.map(d => d.role[0].toUpperCase()).join('').replace('A', 'X');
+    const finalUrl = window.location.href.replace('game.html', 'key.html') + "?layout=" + layout;
+    qrContainer.innerHTML = "";
+    new QRCode(qrContainer, { text: finalUrl, width: 140, height: 140 });
+}
+
+function playSound(id) {
+    const s = document.getElementById(id);
+    if(s) { s.currentTime = 0; s.play().catch(()=>{}); }
+}
+
+function showWinner(name) {
+    clearInterval(timerInterval);
+    document.getElementById('winner-name').innerText = name;
+    document.getElementById('winner-overlay').style.display = 'flex';
+}
+
+function showGameOver() {
+    clearInterval(timerInterval);
+    const loser = currentTurn === 'red' ? (localStorage.getItem('teamRedName') || "Red Team") : (localStorage.getItem('teamBlueName') || "Blue Team");
+    document.getElementById('loser-name').innerText = loser;
+    document.getElementById('game-over-overlay').style.display = 'flex';
 }
 
 function addManualWord() {
@@ -152,228 +332,7 @@ function addManualWord() {
     }
 }
 
-function updateStartButton() {
-    const startBtn = document.getElementById('start-mission-btn');
-    if(!startBtn) return;
-    const gridSize = parseInt(document.getElementById('gridSize').value);
-    const required = gridSize * gridSize;
-    const checkedValid = document.querySelectorAll('.word-check:checked:not(:disabled)');
-    const count = checkedValid.length;
-    startBtn.innerText = `🚀 START MISSION (${count}/${required})`;
-    if (count < required) {
-        startBtn.style.opacity = "0.5";
-        startBtn.style.cursor = "not-allowed";
-        startBtn.disabled = true;
-    } else {
-        startBtn.style.opacity = "1";
-        startBtn.style.cursor = "pointer";
-        startBtn.disabled = false;
-    }
-}
-
-function toggleCategory(masterCheckbox, listId) {
-    const checkboxes = document.querySelectorAll(`#${listId} .word-check:not(:disabled)`);
-    checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
-    updateStartButton();
-}
-
-function clearAll() {
-    document.querySelectorAll('.word-check').forEach(cb => cb.checked = false);
-    document.querySelectorAll('.type-toggle').forEach(cb => cb.checked = false);
-    updateStartButton();
-}
-
-function toggleVisibility(id) {
-    const el = document.getElementById(id);
-    if(el) el.style.display = (el.style.display === 'none') ? 'block' : 'none';
-}
-
-function randomAll() {
-    clearAll();
-    const allValid = Array.from(document.querySelectorAll('.word-check:not(:disabled)'));
-    const shuffled = allValid.sort(() => 0.5 - Math.random());
-    for(let i=0; i < 60; i++) { if(shuffled[i]) shuffled[i].checked = true; }
-    updateStartButton();
-}
-
-function saveSettings() {
-    const gridSize = document.getElementById('gridSize').value;
-    const difficulty = document.getElementById('difficulty-select').value;
-    localStorage.setItem('gridSize', gridSize);
-    localStorage.setItem('gameDifficulty', difficulty);
-    localStorage.setItem('teamRedName', document.getElementById('teamRedName').value || "Red Team");
-    localStorage.setItem('teamBlueName', document.getElementById('teamBlueName').value || "Blue Team");
-    let activeWords = [];
-    document.querySelectorAll('.word-check:checked:not(:disabled)').forEach(cb => {
-        activeWords.push({w: cb.getAttribute('data-word'), d: parseInt(cb.getAttribute('data-level'))});
-    });
-    localStorage.setItem('activeWords', JSON.stringify(activeWords));
-}
-
-// 3. GAME PAGE LOGIC
-function loadGame() {
-    const board = document.getElementById('game-board');
-    if (!board) return;
-
-    const teamRed = localStorage.getItem('teamRedName') || "Red Team";
-    const teamBlue = localStorage.getItem('teamBlueName') || "Blue Team";
-    document.getElementById('red-team-display').innerText = teamRed;
-    document.getElementById('blue-team-display').innerText = teamBlue;
-
-    // FIX: Combined duplicate difficulty badge logic
-    const maxDiff = parseInt(localStorage.getItem('gameDifficulty') || "2");
-    const diffDisplay = document.getElementById('difficulty-display');
-    if (diffDisplay) {
-        const labels = { 
-            "1": "INTEL LEVEL: EASY (PRIMARY)", 
-            "2": "INTEL LEVEL: NORMAL (SEMINARY)", 
-            "3": "INTEL LEVEL: HARD (SCHOLAR)" 
-        };
-        diffDisplay.innerText = labels[maxDiff] || "INTEL LEVEL: NORMAL (SEMINARY)";
-    }
-
-    const gridSize = parseInt(localStorage.getItem('gridSize')) || 5;
-    const allSelectedWords = JSON.parse(localStorage.getItem('activeWords') || "[]"); 
-    let filteredWords = allSelectedWords.map(obj => obj.w);
-    let gameWords = filteredWords.sort(() => 0.5 - Math.random()).slice(0, gridSize * gridSize);
-    
-    let roles = ["assassin"];
-    let redN = Math.floor((gridSize * gridSize) / 3) + 1;
-    let blueN = Math.floor((gridSize * gridSize) / 3);
-    for(let i=0; i<redN; i++) roles.push("red");
-    for(let i=0; i<blueN; i++) roles.push("blue");
-    while(roles.length < (gridSize * gridSize)) roles.push("neutral");
-    roles = roles.sort(() => 0.5 - Math.random());
-
-    board.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
-    board.innerHTML = '';
-    window.currentGameData = [];
-
-    gameWords.forEach((word, i) => {
-        let role = roles[i];
-        window.currentGameData.push({ word, role, revealed: false });
-        let card = document.createElement('div');
-        card.className = 'card';
-        card.id = `card-${i}`;
-        card.innerText = word;
-        card.onclick = () => {
-            if(window.currentGameData[i].revealed) return;
-            window.currentGameData[i].revealed = true;
-            card.classList.add('revealed', role);
-            
-            if(role === 'assassin') {
-                playSound('sound-fail');
-                showGameOver();
-            } else if (role === 'neutral') {
-                toggleTurn();
-                updateGameScore();
-            } else {
-                if (role === currentTurn) {
-                    playSound('sound-correct');
-                } else {
-                    toggleTurn();
-                }
-                updateGameScore();
-            }
-        };
-        board.appendChild(card);
-    });
-    
-    currentTurn = 'red';
-    updateGameScore();
-    generateSpymasterQR();
-    startTimer();
-}
-
-function playSound(id) {
-    const s = document.getElementById(id);
-    if(s) { s.currentTime = 0; s.play(); }
-}
-
-function startTimer() {
-    if(timerInterval) clearInterval(timerInterval);
-    seconds = 60;
-    const timerEl = document.getElementById('timer');
-    if(timerEl) {
-        timerEl.innerText = "60s";
-        timerEl.classList.remove('low-time');
-    }
-    timerInterval = setInterval(() => {
-        seconds--;
-        if(timerEl) {
-            timerEl.innerText = seconds + "s";
-            if(seconds <= 10) timerEl.classList.add('low-time');
-        }
-        if(seconds <= 0) toggleTurn();
-    }, 1000);
-}
-
-function toggleTurn() {
-    currentTurn = (currentTurn === 'red') ? 'blue' : 'red';
-    startTimer();
-    applyTurnGlow();
-}
-
-function applyTurnGlow() {
-    const redBox = document.querySelector('.red-score');
-    const blueBox = document.querySelector('.blue-score');
-    if(!redBox || !blueBox) return;
-    redBox.classList.remove('active-team');
-    blueBox.classList.remove('active-team');
-    if (currentTurn === 'red') { redBox.classList.add('active-team'); } 
-    else { blueBox.classList.add('active-team'); }
-}
-
-function updateGameScore() {
-    if (!window.currentGameData) return;
-    const r = window.currentGameData.filter(d => d.role === 'red' && !d.revealed).length;
-    const b = window.currentGameData.filter(d => d.role === 'blue' && !d.revealed).length;
-    document.getElementById('red-count').innerText = r;
-    document.getElementById('blue-count').innerText = b;
-    applyTurnGlow();
-
-    if (r === 0) {
-        playSound('sound-win');
-        showWinner(localStorage.getItem('teamRedName') || "Red Team");
-    } else if (b === 0) {
-        playSound('sound-win');
-        showWinner(localStorage.getItem('teamBlueName') || "Blue Team");
-    }
-}
-
-function showWinner(name) {
-    clearInterval(timerInterval);
-    document.getElementById('winner-name').innerText = name;
-    document.getElementById('winner-overlay').style.display = 'flex';
-}
-
-function showGameOver() {
-    clearInterval(timerInterval);
-    const loser = currentTurn === 'red' ? (localStorage.getItem('teamRedName') || "Red Team") : (localStorage.getItem('teamBlueName') || "Blue Team");
-    document.getElementById('loser-name').innerText = loser;
-    document.getElementById('game-over-overlay').style.display = 'flex';
-}
-
-function generateSpymasterQR() {
-    const qrContainer = document.getElementById("qrcode");
-    if (!qrContainer || typeof QRCode === "undefined") return;
-    let layout = window.currentGameData.map(d => d.role[0].toUpperCase()).join('').replace('A', 'X');
-    const currentUrl = window.location.href.split('?')[0]; 
-    const finalUrl = currentUrl.replace('game.html', 'key.html') + "?layout=" + layout;
-    qrContainer.innerHTML = "";
-    new QRCode(qrContainer, { text: finalUrl, width: 140, height: 140 });
-}
-
-function toggleSpy(show) {
-    window.currentGameData.forEach((data, i) => {
-        const card = document.getElementById(`card-${i}`);
-        if (!data.revealed) {
-            show ? card.classList.add('peek', `${data.role}-key`) : card.classList.remove('peek', 'red-key', 'blue-key', 'neutral-key', 'assassin-key');
-        }
-    });
-}
-
-// 4. INITIALIZATION
+// 6. INIT
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('word-pack-container')) buildWordManager();
     if (document.getElementById('game-board')) loadGame();
