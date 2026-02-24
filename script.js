@@ -45,6 +45,9 @@ function buildWordManager() {
     const container = document.getElementById('word-pack-container');
     if (!container) return;
 
+    // FIX: Clear the container first to prevent double-displaying packs
+    container.innerHTML = '';
+
     // Load saved inputs
     document.getElementById('teamRedName').value = localStorage.getItem('teamRedName') || "Red Team";
     document.getElementById('teamBlueName').value = localStorage.getItem('teamBlueName') || "Blue Team";
@@ -57,7 +60,6 @@ function buildWordManager() {
         diffSelect.addEventListener('change', refreshWordVisibility);
     }
     
-    // Grid size change listener to update requirements
     document.getElementById('gridSize').addEventListener('change', updateStartButton);
 
     for (let packKey in wordPacks) {
@@ -103,7 +105,6 @@ function buildWordManager() {
     refreshWordVisibility();
 }
 
-// Visually hide/dim words based on Difficulty
 function refreshWordVisibility() {
     const diffEl = document.getElementById('difficulty-select');
     if (!diffEl) return;
@@ -123,7 +124,6 @@ function refreshWordVisibility() {
     updateStartButton();
 }
 
-// Logic for custom word addition inside Setup
 function addManualWord() {
     const input = document.getElementById('manualWordInput');
     const word = input.value.trim();
@@ -140,20 +140,14 @@ function addManualWord() {
     }
 }
 
-// Prevent start if word count is too low
 function updateStartButton() {
     const startBtn = document.getElementById('start-mission-btn');
     if(!startBtn) return;
-
     const gridSize = parseInt(document.getElementById('gridSize').value);
     const required = gridSize * gridSize;
-    
-    // Count only checked words that aren't disabled by difficulty
     const checkedValid = document.querySelectorAll('.word-check:checked:not(:disabled)');
     const count = checkedValid.length;
-
     startBtn.innerText = `🚀 START MISSION (${count}/${required})`;
-
     if (count < required) {
         startBtn.style.opacity = "0.5";
         startBtn.style.cursor = "not-allowed";
@@ -193,12 +187,10 @@ function randomAll() {
 function saveSettings() {
     const gridSize = document.getElementById('gridSize').value;
     const difficulty = document.getElementById('difficulty-select').value;
-    
     localStorage.setItem('gridSize', gridSize);
     localStorage.setItem('gameDifficulty', difficulty);
     localStorage.setItem('teamRedName', document.getElementById('teamRedName').value || "Red Team");
     localStorage.setItem('teamBlueName', document.getElementById('teamBlueName').value || "Blue Team");
-    
     let activeWords = [];
     document.querySelectorAll('.word-check:checked:not(:disabled)').forEach(cb => {
         activeWords.push({w: cb.getAttribute('data-word'), d: parseInt(cb.getAttribute('data-level'))});
@@ -215,7 +207,8 @@ function loadGame() {
     const teamBlue = localStorage.getItem('teamBlueName') || "Blue Team";
     document.getElementById('red-team-display').innerText = teamRed;
     document.getElementById('blue-team-display').innerText = teamBlue;
-// Update the Difficulty Badge text
+
+    // FIX: Combined duplicate difficulty badge logic
     const maxDiff = parseInt(localStorage.getItem('gameDifficulty') || "2");
     const diffDisplay = document.getElementById('difficulty-display');
     if (diffDisplay) {
@@ -227,20 +220,9 @@ function loadGame() {
         diffDisplay.innerText = labels[maxDiff] || "INTEL LEVEL: NORMAL (SEMINARY)";
     }
 
-    // Display Difficulty as text only
-  //  const maxDiff = parseInt(localStorage.getItem('gameDifficulty') || 2);
-  //  const diffDisplay = document.getElementById('difficulty-display');
-   // if (diffDisplay) {
-    //    const labels = { 1: "EASY", 2: "NORMAL", 3: "HARD" };
-   //     diffDisplay.innerText = `LEVEL: ${labels[maxDiff] || "NORMAL"}`;
-  //  }
-
     const gridSize = parseInt(localStorage.getItem('gridSize')) || 5;
     const allSelectedWords = JSON.parse(localStorage.getItem('activeWords') || "[]"); 
-    
-    // We only take the words already filtered by saveSettings()
     let filteredWords = allSelectedWords.map(obj => obj.w);
-
     let gameWords = filteredWords.sort(() => 0.5 - Math.random()).slice(0, gridSize * gridSize);
     
     let roles = ["assassin"];
@@ -304,7 +286,6 @@ function startTimer() {
         timerEl.innerText = "60s";
         timerEl.classList.remove('low-time');
     }
-    
     timerInterval = setInterval(() => {
         seconds--;
         if(timerEl) {
