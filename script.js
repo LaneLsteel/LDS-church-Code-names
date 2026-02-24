@@ -33,22 +33,32 @@ const wordPacks = {
         people: [{w:"Enoch",d:2},{w:"Abraham",d:1},{w:"Moses",d:1},{w:"Kolob",d:2}],
         places: [{w:"Egypt",d:1},{w:"Chaldea",d:3},{w:"Stars",d:1}],
         things: [{w:"Papyrus",d:2},{w:"Facsimile",d:3},{w:"Articles of Faith",d:1}]
+    },
+    mp: {
+        label: "Modern Prophets & Apostles",
+        prophets: [
+            {w:"Joseph Smith",d:1},{w:"Brigham Young",d:1},{w:"John Taylor",d:2},{w:"Wilford Woodruff",d:2},
+            {w:"Lorenzo Snow",d:3},{w:"Joseph F. Smith",d:2},{w:"Heber J. Grant",d:3},{w:"George Albert Smith",d:3},
+            {w:"David O. McKay",d:2},{w:"Joseph Fielding Smith",d:2},{w:"Harold B. Lee",d:3},{w:"Spencer W. Kimball",d:2},
+            {w:"Ezra Taft Benson",d:2},{w:"Howard W. Hunter",d:3},{w:"Gordon B. Hinckley",d:1},{w:"Thomas S. Monson",d:1},
+            {w:"Russell M. Nelson",d:1}
+        ],
+        apostles: [
+            {w:"Dallin H. Oaks",d:1},{w:"Jeffrey R. Holland",d:1},{w:"Dieter F. Uchtdorf",d:1},{w:"David A. Bednar",d:1},
+            {w:"Quentin L. Cook",d:2},{w:"Todd Christofferson",d:2},{w:"Neil L. Andersen",d:2},{w:"Ronald A. Rasband",d:2},
+            {w:"Gary E. Stevenson",d:2},{w:"Dale G. Renlund",d:2},{w:"Gerrit W. Gong",d:2},{w:"Ulisses Soares",d:2},
+            {w:"Patrick Kearon",d:2}
+        ]
     }
 };
-
-let currentTurn = 'red'; 
-let timerInterval;
-let seconds = 60;
 
 // 2. SETUP PAGE LOGIC
 function buildWordManager() {
     const container = document.getElementById('word-pack-container');
     if (!container) return;
 
-    // FIX: Clear the container first to prevent double-displaying packs
     container.innerHTML = '';
 
-    // Load saved inputs
     document.getElementById('teamRedName').value = localStorage.getItem('teamRedName') || "Red Team";
     document.getElementById('teamBlueName').value = localStorage.getItem('teamBlueName') || "Blue Team";
     document.getElementById('gridSize').value = localStorage.getItem('gridSize') || "5";
@@ -75,7 +85,8 @@ function buildWordManager() {
         subContainer.className = 'sub-container';
         subContainer.style.display = 'none';
         
-        ["people", "places", "things", "mastery"].forEach(subType => {
+        // ADDED "prophets" and "apostles" to this list:
+        ["people", "places", "things", "mastery", "prophets", "apostles"].forEach(subType => {
             if(!pack[subType]) return;
             let subHeader = document.createElement('div');
             subHeader.className = 'sub-header';
@@ -104,6 +115,7 @@ function buildWordManager() {
     }
     refreshWordVisibility();
 }
+
 
 function refreshWordVisibility() {
     const diffEl = document.getElementById('difficulty-select');
