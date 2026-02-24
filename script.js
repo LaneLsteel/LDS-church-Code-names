@@ -105,7 +105,9 @@ function buildWordManager() {
 
 // Visually hide/dim words based on Difficulty
 function refreshWordVisibility() {
-    const maxDiff = parseInt(document.getElementById('difficulty-select').value);
+    const diffEl = document.getElementById('difficulty-select');
+    if (!diffEl) return;
+    const maxDiff = parseInt(diffEl.value);
     const allOptions = document.querySelectorAll('.word-option');
     
     allOptions.forEach(opt => {
@@ -213,6 +215,25 @@ function loadGame() {
     const teamBlue = localStorage.getItem('teamBlueName') || "Blue Team";
     document.getElementById('red-team-display').innerText = teamRed;
     document.getElementById('blue-team-display').innerText = teamBlue;
+// Update the Difficulty Badge text
+    const maxDiff = parseInt(localStorage.getItem('gameDifficulty') || "2");
+    const diffDisplay = document.getElementById('difficulty-display');
+    if (diffDisplay) {
+        const labels = { 
+            "1": "INTEL LEVEL: EASY (PRIMARY)", 
+            "2": "INTEL LEVEL: NORMAL (SEMINARY)", 
+            "3": "INTEL LEVEL: HARD (SCHOLAR)" 
+        };
+        diffDisplay.innerText = labels[maxDiff] || "INTEL LEVEL: NORMAL (SEMINARY)";
+    }
+
+    // Display Difficulty as text only
+  //  const maxDiff = parseInt(localStorage.getItem('gameDifficulty') || 2);
+  //  const diffDisplay = document.getElementById('difficulty-display');
+   // if (diffDisplay) {
+    //    const labels = { 1: "EASY", 2: "NORMAL", 3: "HARD" };
+   //     diffDisplay.innerText = `LEVEL: ${labels[maxDiff] || "NORMAL"}`;
+  //  }
 
     const gridSize = parseInt(localStorage.getItem('gridSize')) || 5;
     const allSelectedWords = JSON.parse(localStorage.getItem('activeWords') || "[]"); 
